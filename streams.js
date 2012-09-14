@@ -1,43 +1,36 @@
-// Streams are value driven rather than demand driven; in other words,
-// you pass your callback and you get called with the successive
-// values. This makes it neat if you just want to print each value or
-// something, but harder to encode e.g., state machines on the values.
+// Some fun with stream-like structures.
 
-// A stream is a procedure that accepts a menu of value x
-// nil and calls either value with the value and another stream. A
-// kind of Scott encoding, Tony tells me.
+// This encoding is a procedure that accepts a menu of cons x nil and
+// calls either cons with the value and another stream, or nil.
 
-function fromArrayD(values) {
+// 'S' for Scott-encoded
 
-    function fromArrayD1(values, index) {
+function fromArrayS(values) {
+
+    function fromArray1(values, index) {
         return function(next, stop) {
             if (index < values.length) {
-                next(values[index], fromArrayD1(values, index+1));
+                next(values[index], fromArray1(values, index+1));
             }
             else {
                 stop();
             }
         }
     }
-    return fromArrayD1(values, 0);
+    return fromArray1(values, 0);
 }
 
-function mapD(fn, stream) {
-    function map1(f, s) {
-        return function(next, stop) {
-            s(function(value, rest) {
-                next(f(value), map1(fn, rest));
-            }, stop);
-        };
-    }
-    return map1(fn, stream);
+function mapS(fn, s) {
+    return function(next, stop) {
+        s(function(value, rest) {
+            next(fn(value), mapS(fn, rest));
+        }, stop);
+    };
 }
 
-function filterD(pred, stream) {
-
+function filterS(pred, stream) {
     function filter1(s) {
         return function(next, stop) {
-
             function val(value, rest) {
                 if (pred(value)) {
                     next(value, filter1(rest));
@@ -53,7 +46,7 @@ function filterD(pred, stream) {
     return filter1(stream);
 }
 
-function zipD(fn, a, b) {
+function zipS(fn, a, b) {
 
     function zip1(a, b) {
         return function(next, stop) {
@@ -67,13 +60,14 @@ function zipD(fn, a, b) {
     return zip1(a, b);
 }
 
-function liftD(binOp) {
+function liftS(binOp) {
     return function(a, b) {
-        return zipD(binOp, a, b);
+        return zipS(binOp, a, b);
     }
 }
 
-// OK so that was pretty convenient, auxiliary procedures aside.
+// OK so that was pretty nifty.
+
 // However we have to deal with the fact that our stream values come
 // from I/O, and thus are not demand-driven. For that reason it is
 // more appropriate to have a callback-oriented interface; however,
@@ -82,7 +76,7 @@ function liftD(binOp) {
 // A stream is a procedure that accepts a callback for values, and a
 // continuation for when the values are exhausted.
 
-function fromArray(values) {
+function fromArrayD(values) {
     return function(next, stop) {
         values.forEach(function(value) {
             next(value);
@@ -310,6 +304,17 @@ function printLoopN(n) {
     }
 }
 
+function project(s /* , keys */) {
+    var keys = [].slice.call(arguments, 1);
+    return mapP(function(obj) {
+        var v = {};
+        keys.forEach(function(k) {
+            v[k] = obj[k];
+        });
+        return v;
+    }, s);
+}
+
 // You can hook this up as an event handler:
 
 function events() {
@@ -328,13 +333,80 @@ function events() {
     return p;
 }
 
-function project(s /* , keys */) {
-    var keys = [].slice.call(arguments, 1);
-    return mapP(function(obj) {
-        var v = {};
-        keys.forEach(function(k) {
-            v[k] = obj[k];
+// Actually you can hook #1 up as an event handler too, using the
+// promise implementation:
+
+function eventsS() {
+    var step = function(sync) {
+        return function(cons, nil) {
+            sync.then(function(cell) {
+                cons(cell.value, cell.tail);
+            });
+        }
+    }
+
+    var p = promise();
+    var handle = function(event) {
+        var old = p;
+        p = promise();
+        old.resolve({value: event,
+                     tail: step(p)});
+    }
+    
+    var stream = step(p);
+    stream.handler = handle;
+    return stream;
+}
+
+// Can we do recursive streams a la the example above, with
+// Scott-encoded sequences? Yes, so long as they are guarded by using
+// consS.
+
+function consS(head, tailF) {
+    return function(cons, nil) {
+        cons(head, tailF());
+    }
+}
+
+function tailS(stream) {
+    return function(cons, nil) {
+        stream(function(_value, rest) {
+            rest(cons, nil);
+        }, function() { throw new Exception("Tail is nil"); });
+    }
+}
+
+// function fib() {
+//     return consP(0, function() {
+//         return consP(1, function() {
+//             return zipP(plus, fib(), tailP(fib()));
+//         })});
+// }
+
+function fibS() {
+    return consS(0, function() {
+        return consS(1, function() {
+            return liftS(plus)(fibS(), tailS(fibS()));
         });
-        return v;
-    }, s);
+    });
+}
+
+function takeS(n, stream) {
+    return function(cons, nil) {
+        if (n > 0) {
+            stream(function(val, rest) {
+                cons(val, takeS(n - 1, rest));
+            }, nil);
+        }
+        else {
+            nil();
+        }
+    };
+}
+
+function doS(fn, stream) {
+    stream(function(val, rest) {
+        fn(val);
+        doS(fn, rest);
+    }, function() {});
 }
