@@ -404,9 +404,42 @@ function takeS(n, stream) {
     };
 }
 
+// Here we have to be careful *not* to recurse.
 function doS(fn, stream) {
-    stream(function(val, rest) {
-        fn(val);
-        doS(fn, rest);
-    }, function() {});
+    var s = stream;
+    while (s) {
+        s(function(val, rest) {
+            s = rest;
+            fn(val);
+        }, function() { s = false; });
+    }
 }
+
+function unfoldS(seed, fn) {
+    return function(cons, _nil) {
+        cons(seed, unfoldS(fn(seed), fn));
+    }
+}
+
+var nats = unfoldS(0, function(x) { return x + 1; });
+
+function memoise(stream) {
+    var car, cdr;
+    return function(Cons, Nil) {
+        if (car !== undefined) {
+            Cons(car, cdr);
+        }
+        else {
+            stream(function(val, rest) {
+                car = val; cdr = memoise(rest);
+                Cons(car, cdr);
+            }, Nil);
+        }
+    }
+}
+
+var fibM = memoise(cons(0, function() {
+    return cons(1, function() {
+        return plus(fibM, tail(fibM));
+    });
+}));
