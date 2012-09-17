@@ -2,7 +2,7 @@ promise = require('./promise').promise
 
 events = ->
     step = (sync) ->
-        ((Cons, _Nil) ->
+        ((Cons, _Nil, _Skip) ->
                 sync.then (cell) -> Cons(cell.car, cell.cdr))
     p = promise()
     inject = (v) ->
