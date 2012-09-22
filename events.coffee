@@ -5,6 +5,8 @@
 # though, that it will fill the stack if the underlying stream does
 # *not* return without invoking continuations. Tricky!
 
+promise = require('./promise').promise
+
 events = ->
         step = (sync) ->
                 ((Cons, _Nil, _Skip) ->
