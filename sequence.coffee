@@ -1,4 +1,12 @@
-promise = require('./promise').promise
+# A stream is a procedure accepting three continuations:
+# 
+# Cons, yielding a value and the remaining stream;
+# Nil, meaning the stream is done; and,
+# Skip, giving the remaining stream and meaning the computation shall proceed with that remainder.
+# 
+# Including Skip allows us to write the stream combinators without
+# recursion, so we won't blow the stack doing e.g.,
+#     drop(1000000, nats).
 
 cons = (head, tailfn) ->
     (Cons, Nil, Skip) -> Cons(head, tailfn())
@@ -10,8 +18,8 @@ take = (n, seq) ->
     (Cons, Nil, Skip) ->
         if n > 0
             seq(((v, r) -> Cons(v, take(n - 1, r))),
-                 Nil,
-                 ((r) -> Skip(take(n, r))))
+                Nil,
+                ((r) -> Skip(take(n, r))))
         else
             Nil()
 
@@ -19,8 +27,8 @@ drop = (n, stream) ->
     if n > 0
         (Cons, Nil, Skip) ->
             stream(((_v, r) -> Skip(drop(n - 1, r))),
-                    Nil,
-                    ((r) -> Skip(drop(n, r))))
+                   Nil,
+                   ((r) -> Skip(drop(n, r))))
     else
         stream
 
@@ -72,10 +80,9 @@ memoise = (stream) ->
             Skip(cdr)
         else
             stream(((v, r) ->
-                    car = v; cdr = memoise(r)
-                    Cons(car, cdr)),
-                   Nil,
-                   ((r) -> cdr = r; Skip(r)))
+                car = v; cdr = memoise(r); Cons(car, cdr)),
+                Nil,
+                ((r) -> cdr = r; Skip(r)))
 
 # For each element of a yield an element of b instead. Useful if a is
 # 'driving' the computation but b has the values you want; e.g., if
@@ -101,7 +108,7 @@ fromArray = (arr) ->
 #         s(((v, r) ->
 #             res.push(v); s = r; len--), (-> len = 0))
 #     res
-
+        
 # Here, we will spin until Nil is called, i.e., maybe forever.
 # This'll also spin if the constructors aren't called immediately;
 # e.g., if there's a promise at the far end that squirrels away the
@@ -126,7 +133,7 @@ exports.filter = filter
 exports.memoise = memoise
 exports.lift = lift
 exports.lift2 = lift2
-
+        
 exports.replace = replace
 exports.iota = iota
 exports.nats = nats
