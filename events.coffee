@@ -9,14 +9,20 @@ promise = require('./promise').promise
 
 events = ->
         step = (sync) ->
-                ((Cons, _Nil, _Skip) ->
-                        sync.then ((fn) -> fn(Cons)))
-        p = promise()
+                (Cons, Nil, _Skip) ->
+                        sync.then ((maybe) -> maybe(Cons, Nil))
+        some = (value, sync) ->
+                (Some, _None) -> Some(value, step(sync))
+        none = (_Some, None) -> None()
+
+        next = promise()
         inject = (v) ->
-                old = p
-                p = promise()
-                old.resolve(((Cons) -> Cons(v, step(p))))
-        {stream: step(p), inject: inject}
+                old = next
+                next = promise()
+                old.resolve(some(v, next))
+        stop = () ->
+                next.resolve(none)
+        {stream: step(next), inject: inject, stop: stop}
 
 doEvents = (fn, stream) ->
         end = promise()
