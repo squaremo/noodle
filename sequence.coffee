@@ -8,6 +8,8 @@
 # recursion, so we won't blow the stack doing e.g.,
 #     drop(1000000, nats).
 
+NIL = (_C, Nil, _S) -> Nil()
+
 cons = (head, tailfn) ->
     (Cons, Nil, Skip) -> Cons(head, tailfn())
 
@@ -38,14 +40,36 @@ tail = (stream) ->
 filter = (pred, stream) ->
     (Cons, Nil, Skip) ->
         stream(((v, r) ->
-            if pred(v)
-                Cons(v, filter(pred, r))
-            else
-                Skip(filter(pred, r))), Nil, Skip)
+                    if pred(v)
+                        Cons(v, filter(pred, r))
+                    else
+                        Skip(filter(pred, r))),
+               Nil,
+               ((r) -> Skip(filter(pred, r))))
 
 map = (fn, a) ->
     (Cons, Nil, Skip) ->
-        a(((v, r) -> Cons(fn(v), map(fn, r))), Nil, Skip)
+        a(((v, r) -> Cons(fn(v), map(fn, r))),
+          Nil,
+          ((r) -> Skip(map(fn, r))))
+
+# Expect the result of each application of the supplied function to itself return a sequence; concatenate these into one sequence.
+concatMap = (fn, a) ->
+    inner = (s, outerR) ->
+        (Cons, Nil, Skip) ->
+            s(((v, r) -> Cons(v, inner(r, outerR))),
+              (() -> Skip(concatMap(fn, outerR))),
+              ((r) -> Skip(inner(r, outerR))))
+    (Cons, Nil, Skip) ->
+        a(((v, r) -> Skip(inner(fn(v), r))), Nil, Skip)
+
+# Return a stream of the values of fn, while reapplying it to each
+# value in the stream.
+reductions = (fn, seed, s) ->
+    (Cons, Nil, Skip) ->
+        s(((v, r) -> v1 = fn(seed, v); Cons(v1, reductions(fn, v1, r))),
+          Nil,
+          ((r) -> Skip(reductions(fn, seed, r))))
 
 # Ah now this is trickier, since we have to expose the otheriwse
 # implicit state machine so that we can deal with skip.
@@ -122,6 +146,7 @@ doSeq = (fn, stream) ->
 
 exports = (exports ? this)
 
+exports.NIL = NIL
 exports.cons = cons
 exports.unfold = unfold
 exports.tail = tail
@@ -130,6 +155,8 @@ exports.take = take
 exports.zipWith = zipWith
 exports.map = map
 exports.filter = filter
+exports.concatMap = concatMap
+exports.reductions = reductions
 exports.memoise = memoise
 exports.lift = lift
 exports.lift2 = lift2
