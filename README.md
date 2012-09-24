@@ -163,3 +163,51 @@ For example,
     split(fromArray(['foo\nba', 'r\nbaz\n', 'boo']), '\n')
 
 gives the sequence `'foo', 'bar', 'baz', 'boo'`.
+
+## Node.JS integration
+
+    require('node')
+
+The obvious point of integration with Node.JS is with
+`stream.Stream`. Reduced to the essentials, streams are event emitters
+that emit `'data'` until there are no more (for some reason), then
+emit `'end'`; and, they include a method `pipe` which will read from
+one stream (the source) and write to another, until the source ends.
+
+Technically, one can write all the combinators above for use with these
+streams (well probably, I haven't tried all of them). But you end up
+with funny little state machines, and explicit buffering; and, you
+can't give demand-driven sequences the same treatment.
+
+Luckily the event streams are pretty easy to convert, both into
+writable streams (using the `inject` bit) and readable streams (using
+the stream head and `doEvents`). In fact, so that we can propagate
+backpressure, we'll want to do both; however, the readable bit (where
+values come out) is *after* any computation, and the writable bit
+(where values go in) is before any computation. For this reason, we
+construct the whole thing at once, supplying the computation as a
+transformation of the input sequence (writable) to the output sequence
+(readable).
+
+**`stream(transformer)`** constructs a readable and writable stream;
+  the function `transformer` accept a sequence (that will be written
+  to) and returns a sequence that will be read from. Backpressure is
+  propagated, and `pipe` is available.
+
+For example, reading the comment lines from one file into another
+file, assuming `infile` and `outfile` are already created (with, for
+instance, `fs.createReadStream` and `fs.createWriteStream`
+respectively):
+
+    # Is it a coffe script line comment, that is
+    isComment = (x) -> x.trim()[0] == '#'
+    # split will remove the newlines; this adds them back in
+    newlines = lift((x) -> x + '\n')
+    infile.setEncoding('utf8')
+
+    comments = stream((s) -> newlines(filter(isComment, split(s, '\n'))))
+    infile.pipe(comments).pipe(outfile)
+
+Note that using pipe will tend to end the downstream when the upstream
+ends; so in the above example, `comments` gets ended (and thus so does
+outfile).
