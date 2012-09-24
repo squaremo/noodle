@@ -47,7 +47,7 @@ sense for JavaScript, outside of fun examples)
 
 For example,
 
-```coffescript
+```coffeescript
 alternate = cons(true, -> cons(false, -> alternate))
 ```
 
