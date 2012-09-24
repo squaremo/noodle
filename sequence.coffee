@@ -17,13 +17,13 @@ unfold = (seed, fn) ->
     (Cons, _Nil, _Skip) -> Cons(seed, unfold(fn(seed), fn))
 
 take = (n, seq) ->
-    (Cons, Nil, Skip) ->
-        if n > 0
+    if n > 0
+        (Cons, Nil, Skip) ->
             seq(((v, r) -> Cons(v, take(n - 1, r))),
                 Nil,
                 ((r) -> Skip(take(n, r))))
-        else
-            Nil()
+    else
+        NIL
 
 drop = (n, stream) ->
     if n > 0
@@ -71,22 +71,21 @@ reductions = (fn, seed, s) ->
           Nil,
           ((r) -> Skip(reductions(fn, seed, r))))
 
-# Ah now this is trickier, since we have to expose the otheriwse
+# Ah now this is trickier, since we have to expose the otherwise
 # implicit state machine so that we can deal with skip.
 zipWith = (fn, a, b) ->
-    next = (aval, a, b) ->
-        if aval != undefined
+    next = (aVal, a, b) ->
+        #console.log({val: aVal, a: a.toString(), b: b.toString()})
+        if aVal != undefined
             (Cons, Nil, Skip) ->
-                b(((v, r) ->
-                    Cons(fn(aval, v), next(undefined, a, r))),
+                b(((v, r) -> Cons(fn(aVal, v), next(undefined, a, r))),
                   Nil,
-                  ((r) -> Skip(next(aval, a, r))))
+                  ((r) -> Skip(next(aVal, a, r))))
         else
             (Cons, Nil, Skip) ->
-                a(((v, r) ->
-                    Skip(next(v, r, b))),
+                a(((v, r) -> Skip(next(v, r, b))),
                   Nil,
-                  ((r) -> Skip(aval, r, b)))
+                  ((r) -> Skip(next(undefined, r, b))))
     next(undefined, a, b)
 
 lift = (unOp) ->
