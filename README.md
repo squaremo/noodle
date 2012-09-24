@@ -36,12 +36,14 @@ infinitely many.
 
 ### Constructors
 
-__`NIL`__ is the sequence with no values.
+#### `NIL`
+is the sequence with no values.
 
-__`cons(head, tailfn)`__ constructs a sequence with the `head` and the tail
-yielded by the thunk `tailfn`. The tail is guarded this way so that one
-may construct recursively-defined sequences. (These don't necessarily
-make a lot of sense for JavaScript, outside of fun examples)
+#### `cons(head, tailfn)` 
+constructs a sequence with the `head` and the tail yielded by the
+thunk `tailfn`. The tail is guarded this way so that one may construct
+recursively-defined sequences. (These don't necessarily make a lot of
+sense for JavaScript, outside of fun examples)
 
 For example,
 
@@ -49,8 +51,10 @@ For example,
 
 gives the sequence `true, false, true, false, ...`
 
-__`unfold(seed, fn)`__ generates an infinite sequence by applying fn,
-first to seed, then to successive return values.
+#### `unfold(seed, fn)`
+
+generates an infinite sequence by applying fn, first to seed, then to
+successive return values.
 
 For example,
 
@@ -58,27 +62,30 @@ For example,
 
 gives a sequence of the natural numbers.
 
-__`fromArray(values)`__ is a convenience for constructing a finite
- sequence of the values given. This is useful for writing tests (those
- tests there are) of course, but also for lifting results of "regular"
- procedures into sequences. See for example the implementation of
- `split`.
+#### `fromArray(values)`
+is a convenience for constructing a finite sequence of the values
+given. This is useful for writing tests (those tests there are) of
+course, but also for lifting results of "regular" procedures into
+sequences. See for example the implementation of `split`.
 
 ### Combinators
 
-__`map(fn, seq)`__ gives a sequence of the function `fn` applied to
- the values of `seq`.
+#### `map(fn, seq)`
+gives a sequence of the function `fn` applied to the values of `seq`.
 
-__`filter(predicate, seq)`__ gives a sequence of the values of `seq` for
- which `predicate` returns `true`.
+#### `filter(predicate, seq)`
+gives a sequence of the values of `seq` for which `predicate` returns
+`true`.
 
-__`concatMap(fn, seq)`__ is like `map`, but expects `fn` to return a
- sequence; successive such values are concatenated to yield a "flat"
- sequence. Useful (possibly in conjunction with `fromArray`) for
- mapping a function which may return zero or more values.
+#### `concatMap(fn, seq)`
+is like `map`, but expects `fn` to return a sequence; successive such
+values are concatenated to yield a "flat" sequence. Useful (possibly
+in conjunction with `fromArray`) for mapping a function which may
+return zero or more values.
 
-__`zipWith(fn, a, b)`__ gives a sequence that consists of `fn` applied
- to values of `a` and `b` point-wise. For example,
+#### `zipWith(fn, a, b)`
+gives a sequence that consists of `fn` applied to values of `a` and
+`b` point-wise. For example,
 
     zipWith(((x, y) -> x + y), a, b)
 
@@ -86,40 +93,47 @@ gives the sequence of the first value of a plus the first value of b,
 then the second value of a plus the second value of b, and so
 on. Either sequence ending will end the result.
 
-__`lift`__ takes a unary operation on values and gives an operation on
- streams; in other words,
+#### `lift`
+takes a unary operation on values and gives an operation on sequences;
+in other words,
 
     lift(fn) === (a) -> map(fn, a)
 
-__`lift2`__ takes a binary operation on values and gives a binary
- operation on streams.
+#### `lift2`
+takes a binary operation on values and gives a binary operation on
+sequences.
 
     lift2(fn) === (a, b) -> zipWith(fn, a, b)
 
 ### Operations
 
-__`take(n, seq)`__ gives a sequence with only the first `n` values of
- `seq`, or fewer if `seq` has fewer than `n`.
+#### `take(n, seq)`
+gives a sequence with only the first `n` values of `seq`, or fewer if
+ `seq` has fewer than `n`.
 
-__`drop(n, seq)`__ gives `seq` after discarding `n` values.
+#### `drop(n, seq)`
+gives `seq` after discarding `n` values.
 
-__`tail(seq)`__ discards the first value in `seq` and yields the
- remaining sequence. For simplicity a sequence with no values is
- treated as its own tail.
+#### `tail(seq)`
+discards the first value in `seq` and yields the remaining
+sequence. For simplicity a sequence with no values is treated as its
+own tail.
 
-__`memoise(seq)`__ gives a sequence which remembers values once they
- have been computed; this is sometimes necessary for avoiding
- exponential blowout in recursively-defined sequences. Since this
- forces the whole sequence to be kept in memory, it's a
- trade-off.
+#### `memoise(seq)`
+gives a sequence which remembers values once they have been computed;
+this is sometimes necessary for avoiding exponential blowout in
+recursively-defined sequences. Since this forces the whole sequence to
+be kept in memory, it's a trade-off.
 
-__`replace(a, b)`__ yields a value of `b` for each value of `a`
- realised. This is useful when `a` is "driving" the computation, but
- it's the values of `b` you want; for example, if `a` is incoming
- events, and `b` is a count.
+#### `replace(a, b)`
 
-__`doSeq(proc, seq)`__ applies the (typically side-effecting) procedure
- `proc` with each value of `seq`. For example,
+yields a value of `b` for each value of `a` realised. This is useful
+when `a` is "driving" the computation, but it's the values of `b` you
+want; for example, if `a` is incoming events, and `b` is a count.
+
+#### `doSeq(proc, seq)`
+applies the (typically side-effecting) procedure `proc` with each
+value of `seq`. For example,
 
     doSeq(console.log, take(100, unfold(0, (x) -> x + 1)))
 
@@ -141,22 +155,25 @@ Event streams work with the combinators and operations above. Using
 `doSeq` will spin because of the way it's written as a loop; a
 replacement, `doEvents`, is given for event streams.
 
-__`events()`__ yields an object `{stream, inject, stop}`. `stream` is
- the initial sequence head; `inject` adds another value to the sequence
- tail; and `stop` ends the sequence.
+#### `events()`
+yields an object `{stream, inject, stop}`. `stream` is the initial
+sequence head; `inject` adds another value to the sequence tail; and
+`stop` ends the sequence.
 
-__`doEvents(proc, seq)`__ applies `proc` to each value of `seq`. This
- will recurse in the case of demand-driven sequences, so use only with
- event streams. It returns a promise which is resolved at the
- (possibly never-arriving) end of the stream.
+#### `doEvents(proc, seq)`
+applies `proc` to each value of `seq`. This will recurse in the case
+of demand-driven sequences, so use only with event streams. It returns
+a promise which is resolved at the (possibly never-arriving) end of
+the stream.
 
 ## Strings
 
     require('chars')
 
-__`split(seq, char)`__ gives a sequence of the concatenation of values
-  in `seq` (assuming they are strings), split into substrings at each
-  instance of the character `char`.
+#### `split(seq, char)`
+gives a sequence of the concatenation of values in `seq` (assuming
+they are strings), split into substrings at each instance of the
+character `char`.
 
 For example,
 
@@ -189,10 +206,12 @@ construct the whole thing at once, supplying the computation as a
 transformation of the input sequence (writable) to the output sequence
 (readable).
 
-__`stream(transformer)`__ constructs a readable and writable stream;
-  the function `transformer` accept a sequence (that will be written
-  to) and returns a sequence that will be read from. Backpressure is
-  propagated, and `pipe` is available.
+#### `stream(transformer)`
+
+constructs a readable and writable stream; the function `transformer`
+accept a sequence (that will be written to) and returns a sequence
+that will be read from. Backpressure is propagated, and `pipe` is
+available.
 
 For example, reading the comment lines from one file into another
 file, assuming `infile` and `outfile` are already created (with, for
