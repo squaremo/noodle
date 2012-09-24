@@ -1,7 +1,9 @@
 # Noodling around with sequences
 
-Some coffee scripts with an encoding of sequences (streams, whatever)
-and the accompanying combinators.
+Some modules with an encoding of sequences (streams, whatever) and the
+accompanying combinators. Usable from either CoffeeScript or Node.JS,
+and if you can figure out how, in browsers. Examples below are in
+CoffeeScript.
 
 There's two kinds of sequences here, which I'll describe as
 *demand-driven* (new values are calculated by need, like lazy
@@ -27,8 +29,6 @@ considering an element (e.g., in filter).
 
 ## Sequences
 
-    require('sequence')
-
 Let's treat with demand-driven sequences first. With these, a value is
 available every time you ask for one -- which means you can iterate
 through values in a loop (`doSeq` does this), so long as there aren't
@@ -47,7 +47,9 @@ sense for JavaScript, outside of fun examples)
 
 For example,
 
-    alternate = cons(true, -> cons(false, -> alternate))
+```coffescript
+alternate = cons(true, -> cons(false, -> alternate))
+```
 
 gives the sequence `true, false, true, false, ...`
 
@@ -58,7 +60,9 @@ successive return values.
 
 For example,
 
-    unfold(0, (x) -> x + 1)
+```coffeescript
+unfold(0, (x) -> x + 1)
+```
 
 gives a sequence of the natural numbers.
 
@@ -87,7 +91,9 @@ return zero or more values.
 gives a sequence that consists of `fn` applied to values of `a` and
 `b` point-wise. For example,
 
-    zipWith(((x, y) -> x + y), a, b)
+```coffeescript
+zipWith(((x, y) -> x + y), a, b)
+```
 
 gives the sequence of the first value of a plus the first value of b,
 then the second value of a plus the second value of b, and so
@@ -97,13 +103,17 @@ on. Either sequence ending will end the result.
 takes a unary operation on values and gives an operation on sequences;
 in other words,
 
-    lift(fn) === (a) -> map(fn, a)
+```coffeescript
+lift(fn) === (a) -> map(fn, a)
+```
 
 #### `lift2`
 takes a binary operation on values and gives a binary operation on
 sequences.
 
-    lift2(fn) === (a, b) -> zipWith(fn, a, b)
+```coffeescript
+lift2(fn) === (a, b) -> zipWith(fn, a, b)
+```
 
 ### Operations
 
@@ -135,15 +145,15 @@ want; for example, if `a` is incoming events, and `b` is a count.
 applies the (typically side-effecting) procedure `proc` with each
 value of `seq`. For example,
 
-    doSeq(console.log, take(100, unfold(0, (x) -> x + 1)))
+```coffeescript
+doSeq(console.log, take(100, unfold(0, (x) -> x + 1)))
+```
 
 `doSeq` spins in a while loop, and for this reason is only suitable
 for demand-driven sequences, and finite ones at that; otherwise it'll
 happily spin forever.
 
 ## Event streams
-
-    require('events')
 
 Event streams (for want of a better term) are producer-driven
 sequences. This means you get both the sequence and the means of
@@ -168,8 +178,6 @@ the stream.
 
 ## Strings
 
-    require('chars')
-
 #### `split(seq, char)`
 gives a sequence of the concatenation of values in `seq` (assuming
 they are strings), split into substrings at each instance of the
@@ -177,13 +185,13 @@ character `char`.
 
 For example,
 
-    split(fromArray(['foo\nba', 'r\nbaz\n', 'boo']), '\n')
+```coffeescript
+split(fromArray(['foo\nba', 'r\nbaz\n', 'boo']), '\n')
+```
 
 gives the sequence `'foo', 'bar', 'baz', 'boo'`.
 
 ## Node.JS integration
-
-    require('node')
 
 The obvious point of integration with Node.JS is with
 `stream.Stream`. Reduced to the essentials, streams are event emitters
@@ -218,14 +226,16 @@ file, assuming `infile` and `outfile` are already created (with, for
 instance, `fs.createReadStream` and `fs.createWriteStream`
 respectively):
 
-    # Is it a coffe script line comment, that is
-    isComment = (x) -> x.trim()[0] == '#'
-    # split will remove the newlines; this adds them back in
-    newlines = lift((x) -> x + '\n')
-    infile.setEncoding('utf8')
+```coffeescript
+# Is it a coffe script line comment, that is
+isComment = (x) -> x.trim()[0] == '#'
+# split will remove the newlines; this adds them back in
+newlines = lift((x) -> x + '\n')
+infile.setEncoding('utf8')
 
-    comments = stream((s) -> newlines(filter(isComment, split(s, '\n'))))
-    infile.pipe(comments).pipe(outfile)
+comments = stream((s) -> newlines(filter(isComment, split(s, '\n'))))
+infile.pipe(comments).pipe(outfile)
+```
 
 Note that using pipe will tend to end the downstream when the upstream
 ends; so in the above example, `comments` gets ended (and thus so does
