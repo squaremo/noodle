@@ -22,8 +22,6 @@ product = (combine, a, b) ->
     concatMap(id, step(a, b, NIL, NIL, combine, combineflip))
 
 join = (pred2, combine, a, b) ->
-    combines = {false: combine, true: (x, y) -> combine(y, x)}
-    pred2s = {false: pred2, true: (x, y) -> pred2(y, x)}
     step = (a, b, as, bs, flipped) ->
         c = if flipped then (x, y) -> combine(y, x) else combine
         p = if flipped then (x, y) -> pred2(y, x) else pred2
