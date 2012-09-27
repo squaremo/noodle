@@ -227,12 +227,9 @@ instance, `fs.createReadStream` and `fs.createWriteStream`
 respectively):
 
 ```coffeescript
-# Is it a coffe script line comment, that is
 isComment = (x) -> x.trim()[0] == '#'
-# split will remove the newlines; this adds them back in
 newlines = lift((x) -> x + '\n')
 infile.setEncoding('utf8')
-
 comments = stream((s) -> newlines(filter(isComment, split(s, '\n'))))
 infile.pipe(comments).pipe(outfile)
 ```
@@ -240,3 +237,34 @@ infile.pipe(comments).pipe(outfile)
 Note that using pipe will tend to end the downstream when the upstream
 ends; so in the above example, `comments` gets ended (and thus so does
 outfile).
+
+## References
+
+There's a great survey of streams (lazy sequences) in the preface to
+[SRFI-40](http://srfi.schemers.org/srfi-40/srfi-40.html), and
+additional discussion in
+[SRFI-41](http://srfi.schemers.org/srfi-41/srfi-41.html).
+
+The technique of having a `Skip` constructor to avoid recursion I have
+lifted from the paper ["Stream
+Fusions"](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.104.7401). There
+it's used to give the compiler an opportunity to optimise away
+intermediate steps; here I've used it to avoid blowing the stack,
+since JavaScript does not execute tail calls in constant stack. Sadly
+I don't get the same chance at optimisation with JavaScript, so
+there's no deforestation effect.
+
+I've taken a couple of notions from Clojure's lazy sequences, though
+they are of a slightly different nature; in particular, calling them
+"sequences", and the name of the procedure `doSeq`. Clojure's lazy
+sequences use a different scheme to avoid recursion (it doesn't have
+proper tail calls either): it delays the whole value (the cons cell,
+if you like), and forces it in the primitive `seq`, which will iterate
+until it gets a realised sequence. Thus, `filter` and the like are
+free to keep returning delayed values that will themselves yield
+further delayed sequences. This is pretty similar in effect to the
+stream fusion scheme.
+
+I haven't seen the continuation-passing variety of streams elsewhere,
+but of course this style is almost mandatory in the typical
+environments in which JavaScript runs.
