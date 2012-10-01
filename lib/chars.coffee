@@ -6,7 +6,7 @@
 
 seq = require('./sequence')
 
-split = (stream, char) ->
+split = (char, stream) ->
     splitStrings1 = (remainder, s) ->
         (Cons, Nil, Skip) ->
             s(((v, r) ->
@@ -23,3 +23,5 @@ split = (stream, char) ->
 exports = (exports ? this)
 
 exports.split = split
+# Just because it's so common ..
+exports.lines = (s) -> split('\n', s)

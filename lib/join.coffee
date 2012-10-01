@@ -1,6 +1,6 @@
 # Join algorithm on streams
 
-{cons, NIL, fromArray, map, concatMap} = require('./sequence')
+{cons, NIL, fromArray, map, concatMap, filter} = require('./sequence')
 
 id = (s) -> s
 

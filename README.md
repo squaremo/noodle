@@ -266,5 +266,5 @@ further delayed sequences. This is pretty similar in effect to the
 stream fusion scheme.
 
 I haven't seen the continuation-passing variety of streams elsewhere,
-but of course this style is almost mandatory in the typical
-environments in which JavaScript runs.
+but of course this style is almost mandatory in typical JavaScript
+environments.
