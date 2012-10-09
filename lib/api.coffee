@@ -14,6 +14,7 @@
 # %% Can this be a functor (in the SML sense)
 
 Seq = require('./sequence')
+Rel = require('./relations')
 promise = require('./promise').promise
 
 # unary and binary refer to the number of streams to be supplied.
@@ -36,13 +37,6 @@ binary = (fn) ->
         else if args.length is 3
             new Stream(fn(args[0], args[1].streamfn, args[2].streamfn))
         else throw "Expected one, two or three arguments"
-
-# Entry points. These construct a stream or partial application
-# depending on how many arguments are supplied.
-
-map = unary(Seq.map)
-filter = unary(Seq.filter)
-zipWith = binary(Seq.zipWith)
 
 # Streams: this way around gives us the combinators as methods; e.g.,
 #
@@ -85,8 +79,16 @@ class Stream
     map: unaryM(Seq.map)
     filter: unaryM(Seq.filter)
     zipWith: binaryM(Seq.zipWith)
+    concatMap: unaryM(Seq.concatMap)
+    drop: unaryM(Seq.drop)
+    take: unaryM(Seq.take)
 
-    collect: (fn) -> done = collect(@streamfn); done.then(fn); done # %% Reconsider this, may be better to just return promise
+    join: binaryM(Rel.join)
+    project: unaryM(Rel.project)
+    select: unaryM(Rel.select)
+    equijoin: binaryM(Rel.equijoin)
+
+    collect: (fn) -> done = collect(@streamfn); done.then(fn) if fn ?; done # %% Reconsider this, may be better to just return promise
     each : (fn) -> doAll(fn, @streamfn)
 
 # ==== 'follows'
@@ -111,9 +113,16 @@ class UnaryPartial
     apply: (s) -> new Stream(@fn(s.streamfn))
 
     map: unaryP(Seq.map)
-    
     filter: unaryP(Seq.filter)
     zipWith: binaryP(Seq.zipWith)
+    concatMap: unaryP(Seq.concatMap)
+    take: unaryP(Seq.take)
+    drop: unaryP(Seq.drop)
+    
+    join: binaryP(Rel.join)
+    project: unaryP(Rel.project)
+    select: unaryP(Rel.select)
+    equijoin: binaryP(Rel.equijoin)
 
 class BinaryPartial
     constructor: (@fn) ->
@@ -123,10 +132,22 @@ class BinaryPartial
 # TODO: thread: ?
 # thread(nats) . filter(odd) . map(frob)
 
+
+# Entry points. These construct a stream or partial application
+# depending on how many arguments are supplied.
+
 exports = (exports ? this)
 exports.stream = (seq) -> new Stream(seq) # %% Do I want to do some coercion here?
 exports.isStream = (s) -> s instanceof Stream
-exports.map = map
-exports.filter = filter
-exports.zipWith = zipWith
 exports.values = (args...) -> new Stream(Seq.fromArray(args))
+exports.array = (a) -> new Stream(Seq.fromArray(a))
+
+for f in ['map', 'filter', 'drop', 'take', 'concatMap']
+    exports[f] = unary(Seq[f])
+
+exports.zipWith = binary(Seq.zipWith)
+
+exports.project = unary(Rel.project)
+exports.join = binary(Rel.join)
+exports.select = unary(Rel.select)
+exports.equijoin = binary(Rel.equijoin)
