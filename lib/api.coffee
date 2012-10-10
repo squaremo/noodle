@@ -15,6 +15,7 @@
 
 Seq = require('./sequence')
 Rel = require('./relations')
+Ev = require('./events')
 promise = require('./promise').promise
 
 # unary and binary refer to the number of streams to be supplied.
@@ -53,8 +54,14 @@ binaryM = (combo) ->
 # reschedule the loop when it detects that the continuation hasn't
 # been invoked (i.e., the stream is waiting for I/O). Will still loop
 # forever if the stream is infinite, of course.
- 
-# %% NB nextTick may not be available
+
+
+# %%% Although: http://dbaron.org/log/20100309-faster-timeouts
+nextTick = (if process? and process.nextTick?
+    process.nextTick
+else
+    (fn) -> setTimeout(fn, 0))
+
 doAll = (fn, stream) ->
     end = promise()
     s = stream; s1 = undefined
@@ -62,7 +69,7 @@ doAll = (fn, stream) ->
         while (s and s isnt s1)
             s1 = s
             s(((v, r) -> s = r; fn(v)), (-> s = false), ((r) -> s = r))
-        if (s) then nextTick(go) else end.resolve(true)
+        if (s) then process.nextTick(go) else end.resolve(true)
     go()
     end
 
@@ -132,6 +139,12 @@ class BinaryPartial
 # TODO: thread: ?
 # thread(nats) . filter(odd) . map(frob)
 
+# From 'outside' we will get Streams, so we need to unwrap them.
+asPromised = (p) ->
+    unwrapped = promise()
+    # %%% replace when chainable
+    p.then((s) -> unwrapped.resolve(s.streamfn))
+    new Stream(Ev.asPromised(unwrapped))
 
 # Entry points. These construct a stream or partial application
 # depending on how many arguments are supplied.
@@ -141,6 +154,7 @@ exports.stream = (seq) -> new Stream(seq) # %% Do I want to do some coercion her
 exports.isStream = (s) -> s instanceof Stream
 exports.values = (args...) -> new Stream(Seq.fromArray(args))
 exports.array = (a) -> new Stream(Seq.fromArray(a))
+exports.asPromised = asPromised
 
 for f in ['map', 'filter', 'drop', 'take', 'concatMap']
     exports[f] = unary(Seq[f])

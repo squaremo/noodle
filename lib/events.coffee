@@ -33,6 +33,11 @@ doEvents = (fn, stream) ->
         next(stream)
         end
 
+asPromised = (p) ->
+        (Cons, Nil, Skip) ->
+                p.then((s) -> s(Cons, Nil, Skip))
+
 exports = (exports ? this)
 exports.events = events
 exports.doEvents = doEvents
+exports.asPromised = asPromised
