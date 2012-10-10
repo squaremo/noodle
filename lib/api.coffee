@@ -88,7 +88,7 @@ class Stream
     select: unaryM(Rel.select)
     equijoin: binaryM(Rel.equijoin)
 
-    collect: (fn) -> done = collect(@streamfn); done.then(fn) if fn ?; done # %% Reconsider this, may be better to just return promise
+    collect: (fn) -> done = collect(@streamfn); done.then(fn) if fn?; done # %% Reconsider this, may be better to just return promise
     each : (fn) -> doAll(fn, @streamfn)
 
 # ==== 'follows'
