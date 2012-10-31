@@ -47,7 +47,7 @@ unaryM = (combo) -> ((fn) -> new Stream(combo(fn, @streamfn)))
 # NB could also have a partial application here but meh
 binaryM = (combo) ->
     ((fn, other) ->
-        new Stream(combo(fn, @streamfn, other)))
+        new Stream(combo(fn, @streamfn, other.streamfn)))
 
 # Run through a stream, applying the given procedure for its
 # side-effect. This differs from doSeq and doEvents in that it will
