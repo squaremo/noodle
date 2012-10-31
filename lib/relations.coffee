@@ -55,10 +55,16 @@ project = (fields, stream) ->
 select = filter
 
 equijoin = (fields, a, b) ->
-    eq = (x, y) ->
-        for f in fields
-            if x[f] != y[f] then return false
-        true
+    eq = if Array.isArray(fields)
+            (x, y) ->
+                for f in fields
+                    if x[f] != y[f] then return false
+                true
+        else
+            (x, y) ->
+                for fx, fy of fields
+                    if x[fx] != y[fy] then return false
+                true
     merge = (x, y) ->
         r = {}
         r[k] = v for k, v of x
