@@ -55,7 +55,6 @@ binaryM = (combo) ->
 # been invoked (i.e., the stream is waiting for I/O). Will still loop
 # forever if the stream is infinite, of course.
 
-
 # %%% Although: http://dbaron.org/log/20100309-faster-timeouts
 nextTick = (if process? and process.nextTick?
     process.nextTick
@@ -80,13 +79,19 @@ collect = (s) ->
     end.then(-> done.resolve(all)) # %% replace when promises chain
     done
 
+# the function supplied to concatMap is supposed to return a stream;
+# in this API though, we'd expect it to return a stream *object*, so
+# that'll need to be unwrapped.
+unwrapConcatMap = (fn, s) ->
+    Seq.concatMap(((a) -> fn(a).streamfn), s)
+
 class Stream
     constructor: (@streamfn) ->
 
     map: unaryM(Seq.map)
     filter: unaryM(Seq.filter)
     zipWith: binaryM(Seq.zipWith)
-    concatMap: unaryM(Seq.concatMap)
+    concatMap: unaryM(unwrapConcatMap)
     drop: unaryM(Seq.drop)
     take: unaryM(Seq.take)
 
