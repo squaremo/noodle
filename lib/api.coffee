@@ -20,6 +20,8 @@ promise = require('./promise').promise
 
 # unary and binary refer to the number of streams to be supplied.
 
+# NB the arguments given to the procedure supplied to
+# Unary/BinaryPartial will be underlying streams
 unary = (fn) ->
     (args...) ->
         if args.length is 1
@@ -34,7 +36,7 @@ binary = (fn) ->
             new BinaryPartial((a, b) -> fn(args[0], a, b))
         else if args.length is 2
             new UnaryPartial((b) ->
-                fn(args[0], args[1].streamfn, b.streamfn))
+                fn(args[0], args[1].streamfn, b))
         else if args.length is 3
             new Stream(fn(args[0], args[1].streamfn, args[2].streamfn))
         else throw "Expected one, two or three arguments"
@@ -127,7 +129,7 @@ class UnaryPartial
     map: unaryP(Seq.map)
     filter: unaryP(Seq.filter)
     zipWith: binaryP(Seq.zipWith)
-    concatMap: unaryP(Seq.concatMap)
+    concatMap: unaryP(unwrapConcatMap)
     take: unaryP(Seq.take)
     drop: unaryP(Seq.drop)
     
