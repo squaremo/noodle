@@ -157,6 +157,8 @@ asPromised = (p) ->
 # depending on how many arguments are supplied.
 
 exports = (exports ? this)
+exports.unfold = (seed, finish, fn) -> new Stream(Seq.unfold(seed, finish, fn))
+exports.iota = (start, step, stop) -> new Stream(Seq.iota(start, step, stop))
 exports.stream = (seq) -> new Stream(seq) # %% Do I want to do some coercion here?
 exports.isStream = (s) -> s instanceof Stream
 exports.values = (args...) -> new Stream(Seq.fromArray(args))

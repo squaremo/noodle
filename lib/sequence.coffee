@@ -1,3 +1,4 @@
+# -*- tab-width: 4 -*-
 # A stream is a procedure accepting three continuations:
 # 
 # Cons, yielding a value and the remaining stream;
@@ -13,8 +14,12 @@ NIL = (_C, Nil, _S) -> Nil()
 cons = (head, tailfn) ->
     (Cons, Nil, Skip) -> Cons(head, tailfn())
 
-unfold = (seed, fn) ->
-    (Cons, _Nil, _Skip) -> Cons(seed, unfold(fn(seed), fn))
+unfold = (seed, finish, fn) ->
+    (Cons, Nil, _Skip) ->
+        if finish(seed)
+            Nil()
+        else
+            Cons(seed, unfold(fn(seed), finish, fn))
 
 take = (n, seq) ->
     if n > 0
@@ -61,7 +66,9 @@ concatMap = (fn, a) ->
               (() -> Skip(concatMap(fn, outerR))),
               ((r) -> Skip(inner(r, outerR))))
     (Cons, Nil, Skip) ->
-        a(((v, r) -> Skip(inner(fn(v), r))), Nil, Skip)
+        a(((v, r) -> Skip(inner(fn(v), r))),
+          Nil,
+          (r) -> Skip(concatMap(fn, r)))
 
 # Return a stream of the values of fn, while reapplying it to each
 # value in the stream.
@@ -113,8 +120,9 @@ memoise = (stream) ->
 replace = (a, b) ->
     zipWith(((x, y) -> y), a, b)
 
-iota = (start, step) ->
-    unfold(start, (x) -> x + step)
+iota = (start, step, stop) ->
+    finish = if stop? then (n) -> n > stop else (-> false)
+    unfold(start, finish, (x) -> x + step)
 
 nats = iota(0, 1)
 
@@ -164,6 +172,5 @@ exports.replace = replace
 exports.iota = iota
 exports.nats = nats
 exports.fromArray = fromArray
-#exports.intoArray = intoArray
 
 exports.doSeq = doSeq
